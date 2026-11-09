@@ -21,7 +21,6 @@ def calculate_target_channel_gain(
 ) -> float:
     """
     Calculates the square root of the monostatic radar power ratio for one target.
-    This is
     """
     power_gain = (
         channel.tx_antenna_gain_linear
