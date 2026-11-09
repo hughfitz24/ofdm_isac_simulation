@@ -1,0 +1,73 @@
+# used across the sim by any random processes to ensure reproducible runs
+random_seed = 42
+
+# Configuration of the high level simulation setup.
+[radar]
+carrier_frequency_hz = 5.8e9
+transmit_power_w = 10.0
+tx_antenna_gain_linear = 10.0
+rx_antenna_gain_linear = 10.0
+
+# Configuration of the transmitted OFDM symbols
+[ofdm]
+subcarrier_spacing_hz = 60e3
+num_subcarriers = 512
+num_symbols = 512
+cyclic_prefix_samples = 128
+
+# Configuration of the channel that the radar signals are propagating through
+[radar_channel]
+reference_snr_db = 10.0   # omit to disable noise
+
+# Configuration of the channel that the data signals are propagating through
+[downlink_channel]
+rician_k_factor_db = 10.0
+max_doppler_hz = 5.0
+direct_path_doppler_hz = 0.0
+snr_db = 40.0             # omit to disable noise
+
+# The multipath components of the data channel. Each of these individual items
+# represents one path that the data signals can take. 
+
+# !!! Deterministic component !!! 
+[[downlink_channel.paths]]
+delay_s = 0.0
+gain_db = 0.0
+
+[[downlink_channel.paths]]
+delay_s = 100e-9
+gain_db = -3.0
+
+[[downlink_channel.paths]]
+delay_s = 250e-9
+gain_db = -6.0
+
+[[downlink_channel.paths]]
+delay_s = 500e-9
+gain_db = -9.0
+
+# Some configuration of how the reflected signals are processed by the transmitter
+[processing]
+range_fft_size = 1024
+doppler_fft_size = 1024
+
+# Placing some targets in the wireless field for signals to reflect off of
+[[targets]]
+name = "Target 1"
+range_m = 120.0
+velocity_m_s = 8.0
+rcs_m2 = 1.0
+
+[[targets]]
+name = "Target 2"
+range_m = 125.0
+velocity_m_s = -5.0
+rcs_m2 = 0.8
+
+# If outputting figures, some config about how these plots should be generated and where
+[output]
+show_plots = true
+save_plots = false
+figure_directory = "figures"
+max_display_range_m = 350.0
+display_velocity_range_m_s = [-40.0, 40.0]
