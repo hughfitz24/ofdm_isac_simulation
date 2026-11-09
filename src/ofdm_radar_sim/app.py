@@ -12,6 +12,7 @@ from .config import load_simulation_config
 from .plotting import plot_range_doppler_map, plot_signal_space_diagram
 from .radar_receiver import receive_target_echoes
 from .data_receiver import calculate_symbol_error_rate, receive_ofdm_symbols
+from .modulation import create_constellation
 from .transmitter import create_ofdm_transmission
 from .wireless_channel import (
     create_downlink_channel_response,
@@ -26,7 +27,11 @@ def main() -> None:
         config_path = Path(__file__).resolve().parents[2] / "simulation.toml"
 
     config = load_simulation_config(config_path)
-    transmission = create_ofdm_transmission(config.data, config.radar)
+    constellation = create_constellation(config.data.modulation)
+    constellation *= (
+        config.radar.transmit_power_w / config.data.subcarrier_count
+    ) ** 0.5
+    transmission = create_ofdm_transmission(config.data, config.radar, constellation)
 
     radar_reception = receive_target_echoes(
         transmission,
@@ -54,11 +59,12 @@ def main() -> None:
         downlink_channel_response,
         config.downlink.snr_db,
         float((abs(transmission.transmitted_symbols) ** 2).mean()),
+        constellation,
         config.downlink.noise_enabled,
     )
     symbol_error_rate = calculate_symbol_error_rate(
         transmission.transmitted_symbols,
-        data_reception.detected_symbols,
+        data_reception.symbol_estimations,
     )
 
     range_doppler_figure = plot_range_doppler_map(radar_reception.range_doppler, config)

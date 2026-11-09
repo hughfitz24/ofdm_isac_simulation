@@ -12,11 +12,12 @@ from .radar_receiver import RadarReception, receive_target_echoes
 from .data_receiver import (
     OFDMReception,
     calculate_symbol_error_rate,
-    detect_qpsk_symbols,
-    mmse_equalize,
+    ml_receiver,
+    mmse_equalise,
     receive_ofdm_symbols,
 )
 from .transmitter import OFDMTransmission, create_ofdm_transmission
+from .modulation import create_constellation
 
 __all__ = [
     "RadarConfig",
@@ -30,11 +31,12 @@ __all__ = [
     "OFDMReception",
     "RangeDopplerResult",
     "create_ofdm_transmission",
+    "create_constellation",
     "estimate_range_doppler",
     "receive_target_echoes",
-    "detect_qpsk_symbols",
+    "ml_receiver",
     "calculate_symbol_error_rate",
-    "mmse_equalize",
+    "mmse_equalise",
     "receive_ofdm_symbols",
     "load_simulation_config",
 ]

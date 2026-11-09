@@ -24,6 +24,7 @@ class RadarConfig:
 
 @dataclass(frozen=True)
 class DataConfig:
+    modulation: str
     subcarrier_spacing_hz: float
     subcarrier_count: int
     ofdm_symbol_count: int
@@ -114,7 +115,11 @@ def load_simulation_config(config_path: str | Path) -> SimulationConfig:
         values = tomllib.load(config_file)
 
     data_values = values["ofdm"]
+    modulation = str(data_values["modulation"])
+    if modulation not in {"BPSK", "QPSK", "16QAM", "32QAM"}:
+        raise ValueError("modulation must be one of BPSK, QPSK, 16QAM, or 32QAM")
     data = DataConfig(
+        modulation=modulation,
         subcarrier_spacing_hz=_positive_number(data_values, "subcarrier_spacing_hz"),
         subcarrier_count=int(data_values["num_subcarriers"]),
         ofdm_symbol_count=int(data_values["num_symbols"]),

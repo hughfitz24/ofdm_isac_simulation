@@ -10,6 +10,8 @@ rx_antenna_gain_linear = 10.0
 
 # Configuration of the transmitted OFDM symbols
 [ofdm]
+# Supported options: BPSK, QPSK, 16QAM, 32QAM
+modulation = "QPSK"
 subcarrier_spacing_hz = 60e3
 num_subcarriers = 512
 num_symbols = 512

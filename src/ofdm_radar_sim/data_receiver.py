@@ -1,3 +1,12 @@
+# ==================================
+#
+# data_receiver.py 
+# Defines the behaviour of the receiver that receives the OFDM symbols and performs channel equalisation to estimate the data symbols sent. 
+# No radar detection is done here, just standard OFDM processing using an MMSE equaliser. 
+#
+# ==================================
+
+
 from dataclasses import dataclass
 
 import numpy as np
@@ -5,25 +14,37 @@ import numpy as np
 
 @dataclass(frozen=True)
 class OFDMReception:
-    equalized_symbols: np.ndarray
-    detected_symbols: np.ndarray
+    """
+    Class that stores the data computed by the OFDM receiver. 
+
+    Stores both the equalised symbols (i.e. after applying channel estimation), and the mapping of those equalised symbols to their nearest Tx symbol
+    """
+    equalised_symbols: np.ndarray
+    symbol_estimations: np.ndarray
     noise_variance: float
 
 
 def estimate_noise_variance(received_symbols: np.ndarray, snr_db: float) -> float:
-    """Estimate complex noise power from the received power and configured SNR."""
+    """
+    Estimate complex noise power from the received power and configured SNR
+    """
     snr_linear = 10 ** (snr_db / 10)
     received_power = float(np.mean(np.abs(received_symbols) ** 2))
     return received_power / (snr_linear + 1)
 
 
-def mmse_equalize(
+def mmse_equalise(
     received_symbols: np.ndarray,
     channel_response: np.ndarray,
     noise_variance: float,
     symbol_energy: float,
 ) -> np.ndarray:
-    """Apply a per-resource-element linear MMSE equalizer using known channel gains."""
+    """
+    Apply a MMSE equaliser using known channel gains.
+    
+    Assumes that the channel gains are known. This is likely to be done using something like pilot symbols. 
+    This function assumes that process has been done already, and that the process was perfect. 
+    """
     if received_symbols.shape != channel_response.shape:
         raise ValueError("Received symbols and channel response must have matching shapes")
     if noise_variance < 0 or not np.isfinite(noise_variance):
@@ -43,24 +64,25 @@ def mmse_equalize(
     return equalizer * received_symbols
 
 
-def detect_qpsk_symbols(
-    equalized_symbols: np.ndarray,
-    symbol_energy: float,
+def ml_receiver(
+    equalised_symbols: np.ndarray,
+    constellation: np.ndarray,
 ) -> np.ndarray:
-    """Map equalized symbols to the nearest transmitted QPSK constellation point."""
-    amplitude = np.sqrt(symbol_energy / 2)
-    constellation = amplitude * np.array(
-        [1 + 1j, 1 - 1j, -1 + 1j, -1 - 1j],
-        dtype=complex,
-    )
-    flat_symbols = np.asarray(equalized_symbols).reshape(-1)
+    """
+    Perform ML reception on a set of equalised symbols.
+
+    Map equalised symbols to the nearest point in the Tx constellation. 
+    """
+    if constellation.ndim != 1 or constellation.size == 0:
+        raise ValueError("constellation must be a nonempty one-dimensional array")
+    flat_symbols = np.asarray(equalised_symbols).reshape(-1)
     detected_indices = np.empty(flat_symbols.size, dtype=np.intp)
     batch_size = 65536
     for start in range(0, flat_symbols.size, batch_size):
         batch = flat_symbols[start:start + batch_size]
         distances_squared = np.abs(batch[:, None] - constellation[None, :]) ** 2
         detected_indices[start:start + batch_size] = np.argmin(distances_squared, axis=1)
-    return constellation[detected_indices].reshape(equalized_symbols.shape)
+    return constellation[detected_indices].reshape(equalised_symbols.shape)
 
 
 def calculate_symbol_error_rate(
@@ -86,9 +108,13 @@ def receive_ofdm_symbols(
     channel_response: np.ndarray,
     snr_db: float,
     symbol_energy: float,
+    constellation: np.ndarray,
     noise_enabled: bool = True,
 ) -> OFDMReception:
-    """Equalize noisy OFDM symbols and make hard QPSK symbol decisions."""
+    """
+    Perform MMSE equalisation and ML reception of OFDM symbols. 
+
+    """
     if received_symbols.shape != channel_response.shape:
         raise ValueError("Received symbols and channel response must have matching shapes")
     noise_variance = (
@@ -96,11 +122,11 @@ def receive_ofdm_symbols(
         if noise_enabled
         else 0.0
     )
-    equalized_symbols = mmse_equalize(
+    equalised_symbols = mmse_equalise(
         received_symbols,
         channel_response,
         noise_variance,
         symbol_energy,
     )
-    detected_symbols = detect_qpsk_symbols(equalized_symbols, symbol_energy)
-    return OFDMReception(equalized_symbols, detected_symbols, noise_variance)
+    detected_symbols = ml_receiver(equalised_symbols, constellation)
+    return OFDMReception(equalised_symbols, detected_symbols, noise_variance)

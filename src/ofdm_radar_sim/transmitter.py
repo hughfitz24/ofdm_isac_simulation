@@ -13,17 +13,25 @@ class OFDMTransmission:
     symbol_times_s: np.ndarray
 
 
-def create_ofdm_transmission(data: DataConfig, radar: RadarConfig) -> OFDMTransmission:
-    """Create the QPSK resource grid and its time and frequency coordinates."""
+def create_ofdm_transmission(
+    data: DataConfig,
+    radar: RadarConfig,
+    constellation: np.ndarray,
+) -> OFDMTransmission:
+    """Create the modulated OFDM resource grid and its coordinates.
+
+    The supplied constellation is expected to be scaled to the desired transmit
+    power before it is passed here.
+    """
+    if constellation.ndim != 1 or constellation.size == 0:
+        raise ValueError("constellation must be a nonempty one-dimensional array")
     rng = np.random.default_rng(radar.random_seed)
-    qpsk_indices = rng.integers(
+    symbol_indices = rng.integers(
         0,
-        4,
+        constellation.size,
         size=(data.ofdm_symbol_count, data.subcarrier_count),
     )
-    qpsk_constellation = np.array([1 + 1j, 1 - 1j, -1 + 1j, -1 - 1j]) / np.sqrt(2)
-    transmitted_symbols = qpsk_constellation[qpsk_indices]
-    transmitted_symbols *= np.sqrt(radar.transmit_power_w / data.subcarrier_count)
+    transmitted_symbols = constellation[symbol_indices].copy()
     subcarrier_frequencies_hz = (
         np.arange(data.subcarrier_count) - data.subcarrier_count // 2
     ) * data.subcarrier_spacing_hz
