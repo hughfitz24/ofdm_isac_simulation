@@ -1,5 +1,5 @@
 # used across the sim by any random processes to ensure reproducible runs
-random_seed = 42
+random_seed = 2403
 
 # Configuration of the high level simulation setup.
 [radar]
@@ -14,8 +14,8 @@ rx_antenna_gain_linear = 10.0
 modulation = "QPSK"
 subcarrier_spacing_hz = 60e3
 num_subcarriers = 512
-num_symbols = 512
-cyclic_prefix_samples = 128
+num_symbols = 1024
+cyclic_prefix_samples = 256
 
 # Configuration of the channel that the radar signals are propagating through
 [radar_channel]
@@ -51,25 +51,57 @@ gain_db = -9.0
 # Some configuration of how the reflected signals are processed by the transmitter
 [processing]
 range_fft_size = 1024
-doppler_fft_size = 1024
+doppler_fft_size = 2048
 
-# Placing some targets in the wireless field for signals to reflect off of
+# Physical layout of the wireless scene, in metres. Coordinates are scaled
+# from the diagram so the farthest scatterer is 300 m from Tx. The direct
+# Tx-to-Rx path and three two-leg paths via scatterers mirror the diagram.
+[scene]
+tx_position_m = [42.94, 137.42]
+rx_position_m = [386.50, 188.96]
+direct_path = ["Tx", "Rx"]
+
+# Scatter paths: Tx -> scatterer -> Rx. Velocities are in the x/y directions.
+[[scene.scatter_paths]]
+waypoints = ["Tx", "Scatterer A", "Rx"]
+
+[[scene.scatter_paths]]
+waypoints = ["Tx", "Scatterer B", "Rx"]
+
+[[scene.scatter_paths]]
+waypoints = ["Tx", "Scatterer C", "Rx"]
+
+# The radar model below uses each scatterer's distance from Tx and radial speed
+# (positive means approaching). Position and velocity components describe the
+# 2D scene; range and radial velocity are the corresponding sensing inputs.
 [[targets]]
-name = "Target 1"
-range_m = 120.0
-velocity_m_s = 8.0
+name = "Scatterer A"
+position_m = [150.31, 249.08]
+velocity_xy_m_s = [2.4, -1.2]
+range_m = 154.90
+velocity_m_s = -20.80
 rcs_m2 = 1.0
 
 [[targets]]
-name = "Target 2"
-range_m = 125.0
-velocity_m_s = -5.0
+name = "Scatterer B"
+position_m = [266.26, 60.12]
+velocity_xy_m_s = [-1.5, 2.2]
+range_m = 236.31
+velocity_m_s = 10.14
+rcs_m2 = 0.8
+
+[[targets]]
+name = "Scatterer C"
+position_m = [317.79, 257.67]
+velocity_xy_m_s = [2.8, 1.6]
+range_m = 300.00
+velocity_m_s = -5.21
 rcs_m2 = 0.8
 
 # If outputting figures, some config about how these plots should be generated and where
 [output]
 show_plots = true
-save_plots = false
+save_plots = true
 figure_directory = "figures"
 max_display_range_m = 350.0
 display_velocity_range_m_s = [-40.0, 40.0]
