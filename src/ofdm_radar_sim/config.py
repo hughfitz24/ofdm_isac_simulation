@@ -182,7 +182,7 @@ def load_simulation_config(config_path: str | Path) -> SimulationConfig:
         raise ValueError("downlink snr_db must be finite")
     cyclic_prefix_duration_s = data.cyclic_prefix_samples / data.sample_rate_hz
     if max(downlink.path_delays_s) > cyclic_prefix_duration_s:
-        raise ValueError("downlink path delays must fit within the cyclic prefix")
+        raise ValueError("CP is too short, the delays modelled for multipath will cause ISI at this CP length")
     if downlink.maximum_doppler_hz > data.subcarrier_spacing_hz / 10:
         raise ValueError("maximum_doppler_hz must be at most one tenth of subcarrier spacing")
 

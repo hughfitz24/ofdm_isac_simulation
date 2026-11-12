@@ -57,71 +57,69 @@ def plot_range_doppler_map(
     return figure
 
 
-def plot_signal_space_diagram(
+def plot_signal_space_comparison(
     transmitted_symbols: np.ndarray,
-    received_symbols: np.ndarray,
-    subcarrier_frequencies_hz: np.ndarray,
-    symbol_index: int | None = None,
+    received_before_equalisation: np.ndarray,
+    received_after_equalisation: np.ndarray,
+    channel_response: np.ndarray,
+    symbol_index: int = 0,
 ) -> plt.Figure:
-    """Overlay all transmitted and received symbols, coloring received points by frequency."""
-    if received_symbols.shape != transmitted_symbols.shape:
-        raise ValueError("Transmitted and received symbol grids must have matching shapes")
-    if transmitted_symbols.shape[1] != subcarrier_frequencies_hz.size:
-        raise ValueError("There must be one frequency value per subcarrier")
-    if symbol_index is not None and not 0 <= symbol_index < transmitted_symbols.shape[0]:
+    """Compare pre- and post-equalisation signal spaces for one OFDM symbol."""
+    if (
+        received_before_equalisation.shape != transmitted_symbols.shape
+        or received_after_equalisation.shape != transmitted_symbols.shape
+        or channel_response.shape != transmitted_symbols.shape
+    ):
+        raise ValueError("Symbol grids and channel response must have matching shapes")
+    if transmitted_symbols.ndim != 2 or transmitted_symbols.shape[1] == 0:
+        raise ValueError("Symbol grids must be nonempty OFDM-symbol by subcarrier arrays")
+    if not 0 <= symbol_index < transmitted_symbols.shape[0]:
         raise ValueError("symbol_index is outside the available OFDM symbols")
 
-    subcarrier_indices = np.arange(subcarrier_frequencies_hz.size)
+    channel_magnitude = np.abs(channel_response[symbol_index])
     color_scale = Normalize(
-        vmin=float(subcarrier_indices.min()),
-        vmax=float(subcarrier_indices.max()),
+        vmin=float(channel_magnitude.min()),
+        vmax=float(channel_magnitude.max()),
     )
-    figure, axis = plt.subplots(figsize=(7, 7), layout="constrained")
-    if symbol_index is None:
-        transmitted = transmitted_symbols.reshape(-1)
-        received = received_symbols.reshape(-1)
-        received_subcarrier_indices = np.tile(
-            subcarrier_indices,
-            received_symbols.shape[0],
-        )
-        title = "OFDM equalized signal space · all symbols"
-    else:
+    figure, axes = plt.subplots(1, 2, figsize=(12, 5.5), layout="constrained")
+    stages = (
+        (received_before_equalisation, "Before equalisation"),
+        (received_after_equalisation, "After equalisation"),
+    )
+    received_scatter = None
+    for axis, (received_grid, stage) in zip(axes, stages):
         transmitted = transmitted_symbols[symbol_index]
-        received = received_symbols[symbol_index]
-        received_subcarrier_indices = subcarrier_indices
-        title = f"OFDM equalized signal space · symbol {symbol_index}"
-    axis.scatter(
-        transmitted.real,
-        transmitted.imag,
-        marker="x",
-        s=55,
-        color="red",
-        alpha=1.0,
-        linewidths=1.5,
-        label="Transmitted",
-        rasterized=True,
-        zorder=3,
-    )
-    received_scatter = axis.scatter(
-        received.real,
-        received.imag,
-        c=received_subcarrier_indices,
-        cmap="viridis",
-        norm=color_scale,
-        s=22,
-        alpha=0.85,
-        linewidths=0,
-        label="Downlink equalized",
-        rasterized=True,
-    )
-    axis.set(
-        xlabel="In-phase (I)",
-        ylabel="Quadrature (Q)",
-        title=title,
-    )
-    axis.set_aspect("equal", adjustable="datalim")
-    axis.grid(True, alpha=0.25)
-    axis.legend()
-    colorbar = figure.colorbar(received_scatter, ax=axis, pad=0.02)
-    colorbar.set_label("Subcarrier index")
+        received = received_grid[symbol_index]
+        axis.scatter(
+            transmitted.real,
+            transmitted.imag,
+            marker="x",
+            s=55,
+            color="red",
+            linewidths=1.5,
+            label="Transmitted",
+            zorder=3,
+        )
+        received_scatter = axis.scatter(
+            received.real,
+            received.imag,
+            c=channel_magnitude,
+            cmap="viridis",
+            norm=color_scale,
+            s=28,
+            alpha=0.85,
+            linewidths=0,
+            label="Received",
+        )
+        axis.set(
+            xlabel="In-phase (I)",
+            ylabel="Quadrature (Q)",
+            title=f"{stage} · OFDM symbol {symbol_index}",
+        )
+        axis.set_aspect("equal", adjustable="datalim")
+        axis.grid(True, alpha=0.25)
+        axis.legend()
+
+    colorbar = figure.colorbar(received_scatter, ax=axes, pad=0.02)
+    colorbar.set_label("Channel magnitude |H[k]|")
     return figure

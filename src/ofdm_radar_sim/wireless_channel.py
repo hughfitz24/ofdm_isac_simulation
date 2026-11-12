@@ -92,6 +92,7 @@ def create_reflected_signals(
             wavelength_m,
         ) * reflection
     if channel.noise_enabled:
+        # Y_k = H_k * X_k + W_k
         received_symbols = add_awgn(received_symbols, channel.snr_db, random_seed)
     return received_symbols
 

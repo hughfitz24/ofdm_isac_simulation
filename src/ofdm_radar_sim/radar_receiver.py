@@ -49,6 +49,7 @@ def receive_target_echoes(
         SPEED_OF_LIGHT_M_S / radar.carrier_frequency_hz,
         radar.random_seed + 1,
     )
+    # Dividing the received symbol by the transmitted symbol gives the affect of the channel + any noise contribution
     channel_estimates = received_symbols / transmission.transmitted_symbols
     range_doppler = estimate_range_doppler(
         channel_estimates,

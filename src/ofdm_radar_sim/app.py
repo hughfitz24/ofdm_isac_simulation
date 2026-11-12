@@ -9,7 +9,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 
 from .config import load_simulation_config
-from .plotting import plot_range_doppler_map, plot_signal_space_diagram
+from .plotting import plot_range_doppler_map, plot_signal_space_comparison
 from .radar_receiver import receive_target_echoes
 from .data_receiver import calculate_symbol_error_rate, receive_ofdm_symbols
 from .modulation import create_constellation
@@ -68,10 +68,12 @@ def main() -> None:
     )
 
     range_doppler_figure = plot_range_doppler_map(radar_reception.range_doppler, config)
-    signal_space_figure = plot_signal_space_diagram(
+    signal_space_figure = plot_signal_space_comparison(
         transmission.transmitted_symbols,
-        data_reception.equalized_symbols,
-        transmission.subcarrier_frequencies_hz,
+        downlink_received_symbols,
+        data_reception.equalised_symbols,
+        downlink_channel_response,
+        symbol_index=0,
     )
 
     print(f"OFDM bandwidth: {config.data.bandwidth_hz / 1e6:.2f} MHz")
@@ -86,7 +88,7 @@ def main() -> None:
             dpi=160,
         )
         signal_space_figure.savefig(
-            config.output.directory / "ofdm_signal_space.png",
+            config.output.directory / "ofdm_signal_space_before_after_equalisation.png",
             dpi=160,
         )
     if config.output.show_plots:
