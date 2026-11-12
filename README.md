@@ -1,4 +1,4 @@
-# OFDM ISAC Simulation
+# OFDM Integrated Sensing & Communication
 
 This repository implements an ISAC system using OFDM symbols for both data communication and target sensing. 
 
